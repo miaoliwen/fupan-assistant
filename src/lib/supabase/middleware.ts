@@ -1,9 +1,19 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+// 不需要认证的公开路径
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/logout"];
+
 /**
- * 更新用户 session
- * 在 middleware 中调用以刷新过期的 token
+ * 检查路径是否为公开路径
+ */
+function isPublicPath(pathname: string): boolean {
+  return PUBLIC_PATHS.some((path) => pathname.startsWith(path));
+}
+
+/**
+ * 更新用户 session 并进行路由保护
+ * 在 middleware 中调用以刷新过期的 token 并保护需要认证的路由
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -34,8 +44,26 @@ export async function updateSession(request: NextRequest) {
   );
 
   // 刷新 session（如果过期）
-  // 这也会为 Server Components 填充 supabase.auth.getUser()
-  await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const pathname = request.nextUrl.pathname;
+
+  // 路由保护：未登录用户访问受保护页面时重定向到登录页
+  if (!user && !isPublicPath(pathname)) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("redirectedFrom", pathname);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // 已登录用户访问登录页时重定向到首页
+  if (user && pathname === "/login") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    return NextResponse.redirect(redirectUrl);
+  }
 
   return supabaseResponse;
 }

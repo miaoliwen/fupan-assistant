@@ -17,6 +17,13 @@ if (typeof window !== "undefined") {
   });
 }
 
+// 不需要显示导航的页面路径
+const NO_NAV_PATHS = ["/login", "/auth"];
+
+function shouldShowNav(pathname: string): boolean {
+  return !NO_NAV_PATHS.some((path) => pathname.startsWith(path));
+}
+
 function KeyboardShortcuts({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -53,6 +60,30 @@ function KeyboardShortcuts({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function AppContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const showNav = shouldShowNav(pathname);
+
+  return (
+    <>
+      <NotificationContainer />
+      <KeyboardShortcuts>
+        <div className="flex min-h-[100dvh]">
+          {showNav && <Sidebar />}
+          <main
+            className={`flex-1 px-4 sm:px-6 md:px-12 py-5 md:py-10 overflow-auto ${
+              showNav ? "pb-20 md:pb-10" : ""
+            }`}
+          >
+            {children}
+          </main>
+        </div>
+        {showNav && <BottomNav />}
+      </KeyboardShortcuts>
+    </>
+  );
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -62,16 +93,7 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="antialiased" style={{ backgroundColor: "var(--parchment)" }}>
         <ThemeProvider>
-          <NotificationContainer />
-          <KeyboardShortcuts>
-            <div className="flex min-h-[100dvh]">
-              <Sidebar />
-              <main className="flex-1 px-4 sm:px-6 md:px-12 py-5 md:py-10 overflow-auto pb-20 md:pb-10">
-                {children}
-              </main>
-            </div>
-            <BottomNav />
-          </KeyboardShortcuts>
+          <AppContent>{children}</AppContent>
         </ThemeProvider>
       </body>
     </html>
