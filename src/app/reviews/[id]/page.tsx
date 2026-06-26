@@ -11,6 +11,7 @@ import Modal from "@/components/ui/Modal";
 import ActionItemList from "@/components/review/ActionItemList";
 import AIChatPanel from "@/components/review/AIChatPanel";
 import { formatDate } from "@/lib/utils";
+import { useAuthGuard } from "@/hooks";
 import {
   PageTransition,
   FadeIn,
@@ -94,8 +95,10 @@ export default function ReviewDetailPage() {
   const [sections, setSections] = useState<ReviewSection[]>([]);
   const [saving, setSaving] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
+  const { user } = useAuthGuard();
 
   const fetchReview = () => {
+    if (!user) return;
     fetch(`/api/reviews/${id}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -110,8 +113,8 @@ export default function ReviewDetailPage() {
   };
 
   useEffect(() => {
-    fetchReview();
-  }, [id]);
+    if (user) fetchReview();
+  }, [id, user]);
 
   const handleSave = useCallback(async () => {
     if (!review) return;

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAuthGuard } from "@/hooks";
 import {
   BarChart,
   Bar,
@@ -61,8 +62,10 @@ export default function InsightsPage() {
   const [period, setPeriod] = useState("month");
   const [aiSummary, setAiSummary] = useState<AISummary | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const { user } = useAuthGuard();
 
   useEffect(() => {
+    if (!user) return;
     fetch(`/api/insights?period=${period}`)
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -71,7 +74,7 @@ export default function InsightsPage() {
       .then(setData)
       .catch((err) => console.error("加载洞察数据失败:", err));
     setAiSummary(null);
-  }, [period]);
+  }, [period, user]);
 
   const generateAISummary = async () => {
     setAiLoading(true);

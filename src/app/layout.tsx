@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { NotificationContainer } from "@/components/ui/Notification";
 import Sidebar from "@/components/layout/Sidebar";
 import BottomNav from "@/components/layout/BottomNav";
 import "./globals.css";
@@ -61,6 +62,7 @@ export default function RootLayout({
     <html lang="zh-CN" suppressHydrationWarning>
       <body className="antialiased" style={{ backgroundColor: "var(--parchment)" }}>
         <ThemeProvider>
+          <NotificationContainer />
           <KeyboardShortcuts>
             <div className="flex min-h-[100dvh]">
               <Sidebar />

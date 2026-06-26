@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useUIStore } from "@/stores/useUIStore";
 import {
   motion,
   StaggerReveal,
@@ -20,7 +22,20 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useAuthStore();
+  const { addNotification } = useUIStore();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      addNotification("success", "已退出登录");
+      router.push("/login");
+    } catch {
+      addNotification("error", "退出失败");
+    }
+  };
 
   return (
     <aside
@@ -112,8 +127,29 @@ export default function Sidebar() {
           <span className="text-xs opacity-60">{theme === "dark" ? "☀" : "☾"}</span>
           <span>{theme === "dark" ? "浅色模式" : "深色模式"}</span>
         </button>
+        {user && (
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-3 px-4 py-2.5 rounded-lg w-full text-sm font-ui transition-all duration-200 mt-1"
+            style={{
+              color: "var(--warm-silver)",
+              backgroundColor: "transparent",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "var(--dark-surface)";
+              e.currentTarget.style.color = "var(--ivory)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "var(--warm-silver)";
+            }}
+          >
+            <span className="text-xs opacity-60">◻</span>
+            <span>退出登录</span>
+          </button>
+        )}
         <p className="text-xs mt-3 px-4" style={{ color: "var(--stone-gray)", opacity: 0.5 }}>
-          本地优先 · 数据安全
+          {user ? user.email : "本地优先 · 数据安全"}
         </p>
       </motion.div>
     </aside>

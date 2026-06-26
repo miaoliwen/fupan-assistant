@@ -33,7 +33,10 @@
   --warm-silver: #b0aea5;
 
   /* Semantic */
+  --success: #4a7c59;
+  --success-light: #e8f5e9;
   --error: #b53333;
+  --error-light: #fde8e8;
   --focus-blue: #3898ec;
   --border-cream: #f0eee6;
   --border-warm: #e8e6dc;
@@ -66,6 +69,10 @@
   --olive-gray: #b0aea5;
   --stone-gray: #87867f;
   --charcoal-warm: #d1cfc5;
+  --success: #6abf7b;
+  --success-light: #1a3a2a;
+  --error: #e57373;
+  --error-light: #3a1a1a;
 }
 
 @theme inline {

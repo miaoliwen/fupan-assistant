@@ -6,6 +6,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Badge from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
+import { useAuthGuard } from "@/hooks";
 import {
   PageTransition,
   StaggerReveal,
@@ -38,8 +39,10 @@ export default function ReviewsPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [loading, setLoading] = useState(true);
+  const { user } = useAuthGuard();
 
   const fetchReviews = () => {
+    if (!user) return;
     setLoading(true);
     const params = new URLSearchParams();
     if (search) params.set("search", search);
@@ -61,8 +64,8 @@ export default function ReviewsPage() {
   };
 
   useEffect(() => {
-    fetchReviews();
-  }, [category]);
+    if (user) fetchReviews();
+  }, [category, user]);
 
   return (
     <PageTransition>

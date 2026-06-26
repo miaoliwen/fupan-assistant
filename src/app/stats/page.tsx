@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import { useAuthGuard } from "@/hooks";
 import {
   BarChart,
   Bar,
@@ -76,8 +77,10 @@ function Heatmap({ data }: { data: { date: string; count: number }[] }) {
 
 export default function StatsPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const { user, loading: authLoading } = useAuthGuard();
 
   useEffect(() => {
+    if (!user) return;
     fetch("/api/stats")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -85,7 +88,7 @@ export default function StatsPage() {
       })
       .then(setStats)
       .catch((err) => console.error("加载统计数据失败:", err));
-  }, []);
+  }, [user]);
 
   if (!stats) {
     return (

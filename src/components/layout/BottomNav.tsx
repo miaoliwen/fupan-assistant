@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "@/components/ThemeProvider";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { useUIStore } from "@/stores/useUIStore";
 import { motion } from "@/components/motion/MotionElements";
 
 const navItems = [
@@ -15,7 +17,20 @@ const navItems = [
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
+  const { user, signOut } = useAuthStore();
+  const { addNotification } = useUIStore();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      addNotification("success", "已退出登录");
+      router.push("/login");
+    } catch {
+      addNotification("error", "退出失败");
+    }
+  };
 
   return (
     <nav
@@ -88,6 +103,26 @@ export default function BottomNav() {
           主题
         </span>
       </button>
+      {user && (
+        <button
+          onClick={handleLogout}
+          className="flex flex-col items-center gap-0.5 rounded-lg transition-all duration-200"
+          style={{ padding: "6px 12px", minWidth: "56px" }}
+        >
+          <span
+            className="text-base"
+            style={{ color: "var(--warm-silver)", opacity: 0.5 }}
+          >
+            ◻
+          </span>
+          <span
+            className="text-[10px] font-ui"
+            style={{ color: "var(--warm-silver)", opacity: 0.6 }}
+          >
+            退出
+          </span>
+        </button>
+      )}
     </nav>
   );
 }

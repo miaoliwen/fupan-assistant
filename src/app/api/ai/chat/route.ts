@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { anthropic } from "@/lib/anthropic";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: "AI 功能未配置，请设置 ANTHROPIC_API_KEY" }, { status: 503 });
+      return NextResponse.json(
+        { error: "AI 功能未配置，请设置 ANTHROPIC_API_KEY" },
+        { status: 503 }
+      );
+    }
+
+    const supabase = await createClient();
+
+    // 获取当前用户
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -15,21 +30,36 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "缺少参数" }, { status: 400 });
     }
 
-    const review = await prisma.review.findUnique({
-      where: { id: reviewId },
-      include: { sections: true, actions: true },
-    });
+    // 获取复盘记录（验证所有权）
+    const { data: review, error: reviewError } = await supabase
+      .from("reviews")
+      .select(
+        `
+        *,
+        sections:review_sections(*),
+        actions:action_items(*)
+      `
+      )
+      .eq("id", reviewId)
+      .eq("user_id", user.id)
+      .single();
 
-    if (!review) {
+    if (reviewError || !review) {
       return NextResponse.json({ error: "复盘未找到" }, { status: 404 });
     }
 
     const reviewContent = review.sections
-      .map((s) => `## ${s.sectionTitle}\n${s.content || "(未填写)"}`)
+      .map(
+        (s: { section_title: string; content: string }) =>
+          `## ${s.section_title}\n${s.content || "(未填写)"}`
+      )
       .join("\n\n");
 
     const actionList = review.actions
-      .map((a) => `- [${a.status === "done" ? "x" : " "}] ${a.content}${a.dueDate ? ` (截止: ${a.dueDate instanceof Date ? a.dueDate.toISOString().slice(0, 10) : a.dueDate})` : ""}`)
+      .map(
+        (a: { status: string; content: string; due_date: string | null }) =>
+          `- [${a.status === "done" ? "x" : " "}] ${a.content}${a.due_date ? ` (截止: ${a.due_date.slice(0, 10)})` : ""}`
+      )
       .join("\n");
 
     const systemPrompt = `你是复盘助手 AI，帮助用户深入反思和改进。
@@ -43,7 +73,7 @@ export async function POST(request: NextRequest) {
 
 当前复盘信息：
 - 标题: ${review.title}
-- 日期: ${review.date instanceof Date ? review.date.toISOString().slice(0, 10) : review.date}
+- 日期: ${review.date.slice(0, 10)}
 - 分类: ${review.category}
 
 复盘内容：
@@ -74,6 +104,9 @@ ${actionList || "暂无"}
     return NextResponse.json({ reply });
   } catch (error) {
     console.error("POST /api/ai/chat error:", error);
-    return NextResponse.json({ error: "AI 服务暂时不可用" }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI 服务暂时不可用" },
+      { status: 500 }
+    );
   }
 }

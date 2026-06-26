@@ -5,6 +5,7 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
+import { useAuthGuard } from "@/hooks";
 import {
   PageTransition,
   StaggerReveal,
@@ -53,8 +54,10 @@ export default function ActionsPage() {
   const [data, setData] = useState<ActionData | null>(null);
   const [filter, setFilter] = useState<"all" | "overdue" | "dueSoon">("all");
   const [notifyPermission, setNotifyPermission] = useState<string>("default");
+  const { user } = useAuthGuard();
 
   const fetchActions = () => {
+    if (!user) return;
     fetch("/api/actions/extract")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -65,11 +68,13 @@ export default function ActionsPage() {
   };
 
   useEffect(() => {
-    fetchActions();
-    if ("Notification" in window) {
-      setNotifyPermission(Notification.permission);
+    if (user) {
+      fetchActions();
+      if ("Notification" in window) {
+        setNotifyPermission(Notification.permission);
+      }
     }
-  }, []);
+  }, [user]);
 
   const enableNotifications = async () => {
     if (!("Notification" in window)) return;

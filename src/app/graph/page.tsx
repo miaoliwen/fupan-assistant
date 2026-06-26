@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
+import { useAuthGuard } from "@/hooks";
 import {
   PageTransition,
   FadeIn,
@@ -242,8 +243,10 @@ function ForceGraph({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
 
 export default function GraphPage() {
   const [data, setData] = useState<GraphData | null>(null);
+  const { user } = useAuthGuard();
 
   useEffect(() => {
+    if (!user) return;
     fetch("/api/graph")
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -251,7 +254,7 @@ export default function GraphPage() {
       })
       .then(setData)
       .catch((err) => console.error("加载图谱数据失败:", err));
-  }, []);
+  }, [user]);
 
   if (!data) {
     return (

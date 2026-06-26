@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Badge from "@/components/ui/Badge";
 import { formatDate } from "@/lib/utils";
+import { useReviewStore } from "@/stores/useReviewStore";
+import { useAuthStore } from "@/stores/useAuthStore";
 import {
   PageTransition,
   StaggerReveal,
@@ -15,35 +17,63 @@ import {
   motion,
 } from "@/components/motion/MotionElements";
 
-interface Review {
-  id: string;
-  title: string;
-  date: string;
-  category: string;
-  actions: { id: string; status: string }[];
-}
-
 export default function HomePage() {
-  const [recentReviews, setRecentReviews] = useState<Review[]>([]);
-  const [stats, setStats] = useState({ total: 0, pendingActions: 0 });
+  const { reviews, fetchReviews } = useReviewStore();
+  const { user, loadUser } = useAuthStore();
 
   useEffect(() => {
-    fetch("/api/reviews?limit=5")
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then((data) => {
-        setRecentReviews(data.reviews || []);
-        const pending = (data.reviews || []).reduce(
-          (sum: number, r: Review) =>
-            sum + r.actions.filter((a) => a.status === "pending").length,
-          0
-        );
-        setStats({ total: data.pagination?.total || 0, pendingActions: pending });
-      })
-      .catch((err) => console.error("加载复盘列表失败:", err));
-  }, []);
+    loadUser();
+  }, [loadUser]);
+
+  useEffect(() => {
+    if (user) {
+      fetchReviews({ limit: 5 });
+    }
+  }, [user, fetchReviews]);
+
+  const pendingActions = reviews.reduce(
+    (sum, r) => sum + r.actions.filter((a) => a.status === "pending").length,
+    0
+  );
+
+  // 未登录状态
+  if (!user) {
+    return (
+      <PageTransition>
+        <div className="max-w-2xl mx-auto">
+          <FadeIn delay={0}>
+            <div className="mb-8 sm:mb-10">
+              <h1
+                className="font-serif mb-2"
+                style={{ fontSize: "28px", fontWeight: 500, color: "var(--near-black)", lineHeight: 1.2 }}
+              >
+                复盘助手
+              </h1>
+              <p className="font-ui" style={{ color: "var(--olive-gray)", fontSize: "15px", lineHeight: 1.6 }}>
+                通过结构化的复盘，发现成长规律，持续改进
+              </p>
+            </div>
+          </FadeIn>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: "spring", stiffness: 100, damping: 20 }}
+            className="p-8 sm:p-10 text-center font-ui"
+            style={{
+              backgroundColor: "var(--ivory)",
+              borderRadius: "12px",
+              border: "1px solid var(--border-cream)",
+            }}
+          >
+            <p className="mb-4" style={{ color: "var(--stone-gray)" }}>请先登录以查看复盘记录</p>
+            <Link href="/login">
+              <Button>去登录</Button>
+            </Link>
+          </motion.div>
+        </div>
+      </PageTransition>
+    );
+  }
 
   return (
     <PageTransition>
@@ -75,7 +105,7 @@ export default function HomePage() {
               >
                 <p className="text-xs mb-1" style={{ color: "var(--stone-gray)" }}>总复盘数</p>
                 <NumberTicker
-                  value={stats.total}
+                  value={reviews.length}
                   className="font-serif"
                   style={{ fontSize: "26px", fontWeight: 500, color: "var(--near-black)" }}
                 />
@@ -92,7 +122,7 @@ export default function HomePage() {
               >
                 <p className="text-xs mb-1" style={{ color: "var(--stone-gray)" }}>待办行动项</p>
                 <NumberTicker
-                  value={stats.pendingActions}
+                  value={pendingActions}
                   className="font-serif"
                   style={{ fontSize: "26px", fontWeight: 500, color: "var(--terracotta)" }}
                 />
@@ -133,7 +163,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {recentReviews.length === 0 ? (
+            {reviews.length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -153,7 +183,7 @@ export default function HomePage() {
             ) : (
               <StaggerReveal>
                 <div className="space-y-2">
-                  {recentReviews.map((review) => (
+                  {reviews.map((review) => (
                     <StaggerItem key={review.id}>
                       <HoverCard as="a" href={`/reviews/${review.id}`}>
                         <div

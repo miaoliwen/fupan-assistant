@@ -1,11 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { anthropic } from "@/lib/anthropic";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: "AI 功能未配置，请设置 ANTHROPIC_API_KEY" }, { status: 503 });
+      return NextResponse.json(
+        { error: "AI 功能未配置，请设置 ANTHROPIC_API_KEY" },
+        { status: 503 }
+      );
+    }
+
+    const supabase = await createClient();
+
+    // 获取当前用户
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
     const body = await request.json();
@@ -15,17 +30,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "缺少 reviewId" }, { status: 400 });
     }
 
-    const review = await prisma.review.findUnique({
-      where: { id: reviewId },
-      include: { sections: true, actions: true },
-    });
+    // 获取复盘记录（验证所有权）
+    const { data: review, error: reviewError } = await supabase
+      .from("reviews")
+      .select(
+        `
+        *,
+        sections:review_sections(*),
+        actions:action_items(*)
+      `
+      )
+      .eq("id", reviewId)
+      .eq("user_id", user.id)
+      .single();
 
-    if (!review) {
+    if (reviewError || !review) {
       return NextResponse.json({ error: "复盘未找到" }, { status: 404 });
     }
 
-    const existingActions = review.actions.map((a) => a.content).join("\n");
-    const reviewContent = review.sections.map((s) => `## ${s.sectionTitle}\n${s.content}`).join("\n\n");
+    const existingActions = review.actions
+      .map((a: { content: string }) => a.content)
+      .join("\n");
+    const reviewContent = review.sections
+      .map(
+        (s: { section_title: string; content: string }) =>
+          `## ${s.section_title}\n${s.content}`
+      )
+      .join("\n\n");
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
@@ -49,7 +80,8 @@ export async function POST(request: NextRequest) {
       ],
     });
 
-    const textContent = message.content[0].type === "text" ? message.content[0].text : "[]";
+    const textContent =
+      message.content[0].type === "text" ? message.content[0].text : "[]";
     let actions: { content: string; dueDate: string | null }[] = [];
     try {
       const jsonMatch = textContent.match(/\[[\s\S]*\]/);
@@ -59,21 +91,31 @@ export async function POST(request: NextRequest) {
     }
 
     if (actions.length > 0) {
-      const existingContents = new Set(review.actions.map((a) => a.content));
-      const newActions = actions.filter((a) => !existingContents.has(a.content));
-
-      const created = await Promise.all(
-        newActions.map((a) =>
-          prisma.actionItem.create({
-            data: {
-              reviewId,
-              content: a.content,
-              dueDate: a.dueDate ? new Date(a.dueDate) : null,
-              status: "pending",
-            },
-          })
-        )
+      const existingContents = new Set(
+        review.actions.map((a: { content: string }) => a.content)
       );
+      const newActions = actions.filter(
+        (a) => !existingContents.has(a.content)
+      );
+
+      // 创建新的行动项
+      const created = [];
+      for (const action of newActions) {
+        const { data, error } = await supabase
+          .from("action_items")
+          .insert({
+            review_id: reviewId,
+            content: action.content,
+            due_date: action.dueDate || null,
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (!error && data) {
+          created.push(data);
+        }
+      }
 
       return NextResponse.json({ extracted: newActions, created });
     }
@@ -81,6 +123,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ extracted: actions, created: [] });
   } catch (error) {
     console.error("POST /api/ai/extract-actions error:", error);
-    return NextResponse.json({ error: "AI 服务暂时不可用" }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI 服务暂时不可用" },
+      { status: 500 }
+    );
   }
 }

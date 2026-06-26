@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { anthropic } from "@/lib/anthropic";
-import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 const periodDays: Record<string, number> = {
   week: 7,
@@ -11,23 +11,52 @@ const periodDays: Record<string, number> = {
 export async function POST(request: NextRequest) {
   try {
     if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json({ error: "AI 功能未配置，请设置 ANTHROPIC_API_KEY" }, { status: 503 });
+      return NextResponse.json(
+        { error: "AI 功能未配置，请设置 ANTHROPIC_API_KEY" },
+        { status: 503 }
+      );
+    }
+
+    const supabase = await createClient();
+
+    // 获取当前用户
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "未授权" }, { status: 401 });
     }
 
     const body = await request.json();
     const { period = "month" } = body;
 
     const days = periodDays[period] || 30;
-    const since = new Date();
-    since.setDate(since.getDate() - days);
+    const since = new Date(
+      Date.now() - days * 24 * 60 * 60 * 1000
+    ).toISOString();
 
-    const reviews = await prisma.review.findMany({
-      where: { date: { gte: since } },
-      include: { sections: true, actions: true },
-      orderBy: { date: "desc" },
-    });
+    // 获取复盘记录
+    const { data: reviews, error: reviewsError } = await supabase
+      .from("reviews")
+      .select(
+        `
+        *,
+        sections:review_sections(*),
+        actions:action_items(*)
+      `
+      )
+      .eq("user_id", user.id)
+      .gte("date", since)
+      .order("date", { ascending: false });
 
-    if (reviews.length === 0) {
+    if (reviewsError) {
+      console.error("Get reviews error:", reviewsError);
+      return NextResponse.json({ error: "查询失败" }, { status: 500 });
+    }
+
+    if (!reviews || reviews.length === 0) {
       return NextResponse.json({
         summary: "这段时间还没有复盘记录，开始写第一篇复盘吧！",
         highlights: [],
@@ -38,15 +67,34 @@ export async function POST(request: NextRequest) {
 
     const reviewTexts = reviews
       .map(
-        (r) =>
-          `### ${r.title} (${r.date instanceof Date ? r.date.toISOString().slice(0, 10) : r.date})\n${r.sections.map((s) => `**${s.sectionTitle}:** ${s.content}`).join("\n")}`
+        (r: {
+          title: string;
+          date: string;
+          sections: { section_title: string; content: string }[];
+        }) =>
+          `### ${r.title} (${r.date.slice(0, 10)})\n${r.sections.map((s: { section_title: string; content: string }) => `**${s.section_title}:** ${s.content}`).join("\n")}`
       )
       .join("\n\n");
 
     const actionStats = {
-      total: reviews.reduce((sum, r) => sum + r.actions.length, 0),
-      done: reviews.reduce((sum, r) => sum + r.actions.filter((a) => a.status === "done").length, 0),
-      pending: reviews.reduce((sum, r) => sum + r.actions.filter((a) => a.status === "pending").length, 0),
+      total: reviews.reduce(
+        (sum: number, r: { actions: unknown[] }) => sum + r.actions.length,
+        0
+      ),
+      done: reviews.reduce(
+        (sum: number, r: { actions: { status: string }[] }) =>
+          sum +
+          r.actions.filter((a: { status: string }) => a.status === "done")
+            .length,
+        0
+      ),
+      pending: reviews.reduce(
+        (sum: number, r: { actions: { status: string }[] }) =>
+          sum +
+          r.actions.filter((a: { status: string }) => a.status === "pending")
+            .length,
+        0
+      ),
     };
 
     const message = await anthropic.messages.create({
@@ -86,13 +134,24 @@ ${reviewTexts}
       ],
     });
 
-    const textContent = message.content[0].type === "text" ? message.content[0].text : "{}";
-    let result: { summary?: string; highlights?: string[]; patterns?: string[]; suggestions?: string[] } = {};
+    const textContent =
+      message.content[0].type === "text" ? message.content[0].text : "{}";
+    let result: {
+      summary?: string;
+      highlights?: string[];
+      patterns?: string[];
+      suggestions?: string[];
+    } = {};
     try {
       const jsonMatch = textContent.match(/\{[\s\S]*\}/);
       result = JSON.parse(jsonMatch ? jsonMatch[0] : textContent);
     } catch {
-      result = { summary: textContent, highlights: [], patterns: [], suggestions: [] };
+      result = {
+        summary: textContent,
+        highlights: [],
+        patterns: [],
+        suggestions: [],
+      };
     }
 
     // 确保返回的数据结构完整
@@ -104,6 +163,9 @@ ${reviewTexts}
     });
   } catch (error) {
     console.error("POST /api/ai/insight-summary error:", error);
-    return NextResponse.json({ error: "AI 服务暂时不可用" }, { status: 500 });
+    return NextResponse.json(
+      { error: "AI 服务暂时不可用" },
+      { status: 500 }
+    );
   }
 }
