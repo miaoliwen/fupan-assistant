@@ -1,26 +1,204 @@
 @import "tailwindcss";
 
+/* ============================
+   Safe area padding for mobile bottom nav
+   ============================ */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ============================
+   Anthropic Claude Design System — Warm Tone Tokens
+   ============================ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Primary */
+  --near-black: #141413;
+  --terracotta: #c96442;
+  --terracotta-hover: #b5583a;
+  --coral: #d97757;
+
+  /* Surface */
+  --parchment: #f5f4ed;
+  --ivory: #faf9f5;
+  --pure-white: #ffffff;
+  --warm-sand: #e8e6dc;
+  --dark-surface: #30302e;
+  --deep-dark: #141413;
+
+  /* Text Neutrals */
+  --charcoal-warm: #4d4c48;
+  --olive-gray: #5e5d59;
+  --stone-gray: #87867f;
+  --dark-warm: #3d3d3a;
+  --warm-silver: #b0aea5;
+
+  /* Semantic */
+  --error: #b53333;
+  --focus-blue: #3898ec;
+  --border-cream: #f0eee6;
+  --border-warm: #e8e6dc;
+  --border-dark: #30302e;
+
+  /* Rings */
+  --ring-warm: #d1cfc5;
+  --ring-subtle: #dedc01;
+  --ring-deep: #c2c0b6;
+
+  /* Page surface (changes with dark mode) */
+  --page-bg: var(--parchment);
+  --page-text: var(--near-black);
+  --card-bg: var(--ivory);
+  --card-border: var(--border-cream);
+  --input-bg: var(--pure-white);
+}
+
+/* Dark mode overrides */
+[data-theme="dark"] {
+  --page-bg: var(--near-black);
+  --page-text: var(--warm-silver);
+  --card-bg: var(--dark-surface);
+  --card-border: var(--border-dark);
+  --ivory: #30302e;
+  --pure-white: #30302e;
+  --parchment: #141413;
+  --border-cream: #30302e;
+  --border-warm: #3d3d3a;
+  --olive-gray: #b0aea5;
+  --stone-gray: #87867f;
+  --charcoal-warm: #d1cfc5;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-background: var(--parchment);
+  --color-foreground: var(--near-black);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family:
+    Georgia,
+    "Noto Serif SC",
+    "Source Han Serif SC",
+    "Songti SC",
+    serif;
+  background-color: var(--page-bg);
+  color: var(--page-text);
+  line-height: 1.6;
+  transition: background-color 0.3s, color 0.3s;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Sans-serif for UI elements */
+.font-ui {
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Microsoft YaHei",
+    "Helvetica Neue",
+    sans-serif;
+}
+
+/* Serif headings */
+.font-serif {
+  font-family:
+    Georgia,
+    "Noto Serif SC",
+    "Source Han Serif SC",
+    "Songti SC",
+    serif;
+  font-weight: 500;
+}
+
+/* Prevent iOS zoom on input focus */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Markdown rendered content */
+.markdown-content h1 {
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-weight: 500;
+  font-size: 1.5rem;
+  margin: 1.5rem 0 0.75rem;
+  color: var(--near-black);
+}
+.markdown-content h2 {
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-weight: 500;
+  font-size: 1.25rem;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--near-black);
+}
+.markdown-content h3 {
+  font-family: Georgia, "Noto Serif SC", serif;
+  font-weight: 500;
+  font-size: 1.1rem;
+  margin: 1rem 0 0.5rem;
+  color: var(--near-black);
+}
+.markdown-content p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+.markdown-content ul,
+.markdown-content ol {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+.markdown-content li {
+  margin: 0.25rem 0;
+  line-height: 1.6;
+}
+.markdown-content code {
+  font-family: "Consolas", "Monaco", monospace;
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--warm-sand);
+}
+.markdown-content pre {
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 0.75rem 0;
+  background-color: var(--warm-sand);
+}
+.markdown-content pre code {
+  padding: 0;
+  background: none;
+}
+.markdown-content blockquote {
+  border-left: 3px solid var(--terracotta);
+  padding-left: 1rem;
+  margin: 0.75rem 0;
+  color: var(--olive-gray);
+  font-style: italic;
+}
+.markdown-content a {
+  color: var(--terracotta);
+  text-decoration: underline;
+}
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--border-cream);
+  margin: 1.5rem 0;
+}
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+}
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--border-cream);
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 0.9rem;
+}
+.markdown-content th {
+  background-color: var(--warm-sand);
+  font-weight: 500;
 }

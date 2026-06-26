@@ -1,0 +1,49 @@
+[
+  {
+    "name": "每周工作复盘",
+    "description": "用于每周工作回顾，总结得失，制定下周计划",
+    "category": "work",
+    "isBuiltIn": true,
+    "sections": [
+      { "title": "本周完成", "prompt": "本周完成了哪些工作？", "placeholder": "列举本周完成的主要工作事项...", "order": 0 },
+      { "title": "做得好的", "prompt": "本周哪些方面做得好？有什么亮点？", "placeholder": "描述你做得好的地方...", "order": 1 },
+      { "title": "需改进的", "prompt": "本周有哪些可以改进的地方？", "placeholder": "反思可以提升的方面...", "order": 2 },
+      { "title": "下周计划", "prompt": "下周的重点工作计划是什么？", "placeholder": "列出下周的工作重点...", "order": 3 }
+    ]
+  },
+  {
+    "name": "项目里程碑复盘",
+    "description": "用于项目关键节点的回顾与总结",
+    "category": "project",
+    "isBuiltIn": true,
+    "sections": [
+      { "title": "项目目标", "prompt": "这个阶段的项目目标是什么？", "placeholder": "描述项目的预期目标...", "order": 0 },
+      { "title": "实际结果", "prompt": "实际达成了什么成果？", "placeholder": "列出实际取得的成果...", "order": 1 },
+      { "title": "偏差分析", "prompt": "目标和实际之间有哪些偏差？原因是什么？", "placeholder": "分析差异及其原因...", "order": 2 },
+      { "title": "经验教训", "prompt": "从中学到了什么？有什么经验教训？", "placeholder": "总结可复用的经验...", "order": 3 }
+    ]
+  },
+  {
+    "name": "每日个人复盘",
+    "description": "用于每日个人反思，关注成长与状态",
+    "category": "personal",
+    "isBuiltIn": true,
+    "sections": [
+      { "title": "今日收获", "prompt": "今天学到了什么？有什么收获？", "placeholder": "记录今日的成长与收获...", "order": 0 },
+      { "title": "情绪状态", "prompt": "今天的情绪状态如何？为什么？", "placeholder": "回顾今天的心情和感受...", "order": 1 },
+      { "title": "明日优先", "prompt": "明天最重要的三件事是什么？", "placeholder": "1.\n2.\n3.", "order": 2 }
+    ]
+  },
+  {
+    "name": "会议复盘",
+    "description": "用于会议后的快速回顾与行动追踪",
+    "category": "work",
+    "isBuiltIn": true,
+    "sections": [
+      { "title": "会议目标", "prompt": "这次会议要达成什么目标？", "placeholder": "描述会议的预期目标...", "order": 0 },
+      { "title": "关键决策", "prompt": "会议中做出了哪些关键决策？", "placeholder": "列出重要的决策和结论...", "order": 1 },
+      { "title": "行动项", "prompt": "有哪些需要跟进的行动项？", "placeholder": "列出具体的行动项和负责人...", "order": 2 },
+      { "title": "后续跟进", "prompt": "后续需要跟进什么？时间节点是什么？", "placeholder": "明确跟进计划和时间线...", "order": 3 }
+    ]
+  }
+]

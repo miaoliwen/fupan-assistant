@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Template {
+  id          String              @id @default(cuid())
+  name        String
+  description String              @default("")
+  category    String              @default("custom")
+  isBuiltIn   Boolean             @default(false)
+  sections    TemplateSection[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model TemplateSection {
+  id           String   @id @default(cuid())
+  templateId   String
+  template     Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  title        String
+  prompt       String   @default("")
+  placeholder  String   @default("")
+  type         String   @default("text")
+  required     Boolean  @default(false)
+  order        Int      @default(0)
+}
+
+model Review {
+  id         String           @id @default(cuid())
+  templateId String?
+  title      String
+  date       DateTime         @default(now())
+  category   String           @default("custom")
+  tags       String           @default("[]")
+  sections   ReviewSection[]
+  actions    ActionItem[]
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model ReviewSection {
+  id           String @id @default(cuid())
+  reviewId     String
+  review       Review @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  sectionTitle String
+  content      String @default("")
+  order        Int    @default(0)
+}
+
+model ActionItem {
+  id          String    @id @default(cuid())
+  reviewId    String
+  review      Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  content     String
+  status      String    @default("pending")
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  completedAt DateTime?
+}
